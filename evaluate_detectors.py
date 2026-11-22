@@ -14,14 +14,14 @@ THRESHOLD = 3.5
 METHODS = ("z_score", "median_mad")
 
 
-def score(training, readings, method):
+def score(training, readings, method, *, sensors=SENSORS):
     if len(training) < 2:
         raise ValueError("at least two training readings are required")
     if training[-1]["second"] >= readings[0]["second"]:
         raise ValueError("training must end before the first evaluation reading")
 
     reference = {}
-    for sensor in SENSORS:
+    for sensor in sensors:
         values = [row[sensor] for row in training]
         if method == "z_score":
             center, spread = mean(values), stdev(values)
