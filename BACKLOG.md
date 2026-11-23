@@ -4,7 +4,8 @@
 - [x] CSV ingestion and validation for a single sensor stream.
 - [x] Score imported readings and compare two detectors on chronological splits. Report false alerts per hour and detection delay for the labeled synthetic demo.
 - [x] Evaluate on a measured benchmark and document provenance, coverage, and limitations.
-- [ ] Serve scoring and alert history through FastAPI and PostgreSQL.
+- [x] Serve individual sensor scores through FastAPI.
+- [ ] Persist alerts and expose history through PostgreSQL.
 - [ ] Build an operator dashboard, containerize the application, and publish a reproducible demo.
 
 ## Try CSV ingestion
@@ -39,3 +40,18 @@ Use the Numenta Anomaly Benchmark office ambient temperature series and its comb
 Run `python evaluate_nab.py ambient_temperature_system_failure.csv combined_windows.json`. The first 726 chronological rows fit the detectors. The following 6,541 rows are scored without tuning the existing 3.5 threshold. Both detect two of two labeled windows. Mean/standard deviation flags 14 readings outside the windows and median/MAD flags 15. The first alerts occur 9,420 and 20,640 minutes after their respective window starts for both methods.
 
 These broad benchmark windows differ from exact fault onset. Outside-window alerts are flagged readings rather than distinct incidents, and the hourly rate uses elapsed time including gaps. This is a custom evaluation on one office sensor and two windows. It does not measure factory performance or use official NAB scoring.
+
+## Run the scoring API
+
+```sh
+python -m pip install -r requirements.txt
+python -m uvicorn api:app
+```
+
+Open http://127.0.0.1:8000/docs and try POST /score with:
+
+```json
+{"second": 500, "temperature_c": 85, "vibration_mm_s": 2, "current_a": 120}
+```
+
+The service fits both detector references once per process from 500 synthetic normal readings (seed 17). Each request is scored independently. The optional method field accepts z_score or median_mad. The supplied second is returned for correlation. The response identifies the sensor with the largest absolute standardized deviation. PostgreSQL history and calibration for measured factory streams are pending.
