@@ -20,6 +20,12 @@ def score(training, readings, method, *, sensors=SENSORS):
     if training[-1]["second"] >= readings[0]["second"]:
         raise ValueError("training must end before the first evaluation reading")
 
+    reference = fit_reference(training, method, sensors=sensors)
+    for row in readings:
+        yield score_reading(row, method, reference)
+
+
+def fit_reference(training, method, *, sensors=SENSORS):
     reference = {}
     for sensor in sensors:
         values = [row[sensor] for row in training]
@@ -31,18 +37,20 @@ def score(training, readings, method, *, sensors=SENSORS):
         if not math.isfinite(spread) or spread <= 0:
             raise ValueError(f"{method}: {sensor} needs a positive finite training spread")
         reference[sensor] = center, spread
+    return reference
 
-    for row in readings:
-        deviations = {
-            sensor: abs(row[sensor] - center) / spread
-            for sensor, (center, spread) in reference.items()
-        }
-        driver = max(deviations, key=deviations.__getitem__)
-        magnitude = deviations[driver]
-        yield {
-            "second": row["second"], "method": method, "sensor": driver,
-            "score": magnitude, "alert": magnitude >= THRESHOLD,
-        }
+
+def score_reading(row, method, reference):
+    deviations = {
+        sensor: abs(row[sensor] - center) / spread
+        for sensor, (center, spread) in reference.items()
+    }
+    driver = max(deviations, key=deviations.__getitem__)
+    magnitude = deviations[driver]
+    return {
+        "second": row["second"], "method": method, "sensor": driver,
+        "score": magnitude, "alert": magnitude >= THRESHOLD,
+    }
 
 
 def compare(training, readings):
