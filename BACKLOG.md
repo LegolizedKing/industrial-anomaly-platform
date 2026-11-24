@@ -5,7 +5,7 @@
 - [x] Score imported readings and compare two detectors on chronological splits. Report false alerts per hour and detection delay for the labeled synthetic demo.
 - [x] Evaluate on a measured benchmark and document provenance, coverage, and limitations.
 - [x] Serve individual sensor scores through FastAPI.
-- [ ] Persist alerts and expose history through PostgreSQL.
+- [x] Persist alerts and expose history through PostgreSQL.
 - [ ] Build an operator dashboard, containerize the application, and publish a reproducible demo.
 
 ## Try CSV ingestion
@@ -54,4 +54,15 @@ Open http://127.0.0.1:8000/docs and try POST /score with:
 {"second": 500, "temperature_c": 85, "vibration_mm_s": 2, "current_a": 120}
 ```
 
-The service fits both detector references once per process from 500 synthetic normal readings (seed 17). Each request is scored independently. The optional method field accepts z_score or median_mad. The supplied second is returned for correlation. The response identifies the sensor with the largest absolute standardized deviation. PostgreSQL history and calibration for measured factory streams are pending.
+The service fits both detector references once per process from 500 synthetic normal readings (seed 17). Each request is scored independently. The optional method field accepts z_score or median_mad. The supplied second is returned for correlation. The response identifies the sensor with the largest absolute standardized deviation. Calibration for measured factory streams is pending.
+
+## Enable PostgreSQL alert history
+
+Install the API dependencies as above. Set `DATABASE_URL` to a PostgreSQL connection URI and apply the schema before starting the API.
+
+```sh
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f schema.sql
+python -m uvicorn api:app
+```
+
+Submit a temperature spike using the example above, then call `GET /alerts?limit=10`. Each flagged submission creates an alert record. Repeating a submission can create another record. The endpoint returns the latest inserted records first. Its default limit is 50 and its maximum is 200. Normal readings are scored without being stored. Without a configured database, scoring works on its own and history returns HTTP 503. With a configured but unavailable database, a flagged submission returns HTTP 503 if its alert cannot be saved.
