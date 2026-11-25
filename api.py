@@ -3,10 +3,12 @@
 import math
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Literal
 
 import psycopg
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ConfigDict, Field, FiniteFloat
 
 from alert_store import recent_alerts, save_alert
@@ -72,3 +74,8 @@ def score_sensor_reading(reading: Reading):
         except psycopg.Error as error:
             raise HTTPException(status_code=503, detail="Alert could not be saved") from error
     return result
+
+
+@app.get("/", include_in_schema=False)
+def dashboard():
+    return FileResponse(Path(__file__).with_name("dashboard.html"), media_type="text/html")
