@@ -6,7 +6,8 @@
 - [x] Evaluate on a measured benchmark and document provenance, coverage, and limitations.
 - [x] Serve individual sensor scores through FastAPI.
 - [x] Persist alerts and expose history through PostgreSQL.
-- [ ] Build an operator dashboard, containerize the application, and publish a reproducible demo.
+- [x] Build an operator dashboard for scoring and recent alerts.
+- [ ] Containerize the application and publish a reproducible demo.
 
 ## Try CSV ingestion
 
@@ -66,3 +67,7 @@ python -m uvicorn api:app
 ```
 
 Submit a temperature spike using the example above, then call `GET /alerts?limit=10`. Each flagged submission creates an alert record. Repeating a submission can create another record. The endpoint returns the latest inserted records first. Its default limit is 50 and its maximum is 200. Normal readings are scored without being stored. Without a configured database, scoring works on its own and history returns HTTP 503. With a configured but unavailable database, a flagged submission returns HTTP 503 if its alert cannot be saved.
+
+## Open the operator dashboard
+
+Start the API as above and visit http://127.0.0.1:8000/. The form starts with a synthetic temperature spike. Submit it to see the score and sensor with the largest deviation. With PostgreSQL configured, the dashboard displays the latest 25 saved alerts. History can be refreshed independently.
