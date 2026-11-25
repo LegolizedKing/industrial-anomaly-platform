@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensor monitoring</title>
+<style>
+:root { color-scheme: dark; font: 16px system-ui, sans-serif; background: #101923; color: #edf5f8 }
+body { margin: 0 }
+main { max-width: 66rem; margin: auto; padding: 2rem 1rem }
+header, section { margin-bottom: 1.5rem }
+h1 { font-size: clamp(2rem, 6vw, 3.5rem); margin: 0 }
+h2 { margin-top: 0 }
+a, output { color: #88e6d7 }
+section { padding: 1.4rem; background: #192735; border: 1px solid #385166; border-radius: .8rem }
+form { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(13rem,100%),1fr)); gap: 1rem }
+label { display: grid; gap: .4rem }
+input, select, button { font: inherit; padding: .55rem; border: 1px solid #7690a4; border-radius: .35rem }
+button { background: #88e6d7; color: #10252b; cursor: pointer; font-weight: 650 }
+button:disabled { opacity: .65; cursor: wait }
+output { display: block; margin-top: 1rem }
+.scroll { overflow-x: auto }
+table { width: 100%; border-collapse: collapse; text-align: left }
+th, td { border-bottom: 1px solid #385166; padding: .7rem }
+</style>
+<main>
+<header>
+  <h1>Sensor monitoring</h1>
+  <p>Score readings against a synthetic reference and review saved alerts.</p>
+  <a href="/docs">API documentation</a>
+</header>
+<section>
+  <h2>Score a reading</h2>
+  <form id="reading">
+    <label>Elapsed second<input name="second" type="number" min="0" step="1" value="500" required></label>
+    <label>Temperature (°C)<input name="temperature_c" type="number" step="any" value="85" required></label>
+    <label>Vibration (mm/s)<input name="vibration_mm_s" type="number" step="any" value="2" required></label>
+    <label>Current (A)<input name="current_a" type="number" step="any" value="120" required></label>
+    <label>Detector<select name="method"><option value="z_score">Mean / standard deviation</option><option value="median_mad">Median / MAD</option></select></label>
+    <button type="submit">Score reading</button>
+  </form>
+  <output id="result" aria-live="polite"></output>
+</section>
+<section>
+  <h2>Recent alerts</h2>
+  <button id="refresh" type="button">Refresh history</button>
+  <p id="history-status" role="status"></p>
+  <div class="scroll" tabindex="0" role="region" aria-label="Recent alerts table">
+    <table>
+      <thead><tr><th scope="col">Saved at</th><th scope="col">Second</th><th scope="col">Detector</th><th scope="col">Sensor</th><th scope="col">Score</th></tr></thead>
+      <tbody id="history"></tbody>
+    </table>
+  </div>
+</section>
+</main>
+<script>
+const form = document.querySelector("#reading");
+const submit = form.querySelector("button");
+const result = document.querySelector("#result");
+const refresh = document.querySelector("#refresh");
+const status = document.querySelector("#history-status");
+const historyTable = document.querySelector("#history");
+
+async function request(url, options) {
+  const response = await fetch(url, options);
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(typeof data.detail === "string" ? data.detail : "Request failed (" + response.status + ")");
+  }
+  return data;
+}
+
+async function loadHistory() {
+  refresh.disabled = true;
+  status.textContent = "Loading history…";
+  try {
+    const alerts = await request("/alerts?limit=25");
+    const rows = alerts.map(alert => {
+      const row = document.createElement("tr");
+      const values = [new Date(alert.recorded_at).toLocaleString(), alert.second,
+        alert.method, alert.sensor, alert.score.toFixed(2)];
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.textContent = value;
+        row.append(cell);
+      }
+      return row;
+    });
+    historyTable.replaceChildren(...rows);
+    status.textContent = rows.length ? "Showing " + rows.length + " saved alerts." : "No alerts saved yet.";
+  } catch (error) {
+    historyTable.replaceChildren();
+    status.textContent = error.message;
+  } finally {
+    refresh.disabled = false;
+  }
+}
+
+form.addEventListener("submit", async event => {
+  event.preventDefault();
+  submit.disabled = true;
+  result.textContent = "Scoring…";
+  const reading = Object.fromEntries(new FormData(form));
+  for (const field of ["second", "temperature_c", "vibration_mm_s", "current_a"]) {
+    reading[field] = Number(reading[field]);
+  }
+  try {
+    const score = await request("/score", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(reading)
+    });
+    result.textContent = (score.alert ? "Alert" : "Normal") + " · Score " +
+      score.score.toFixed(2) + " · Largest deviation: " + score.sensor;
+    if (score.alert) await loadHistory();
+  } catch (error) {
+    result.textContent = error.message;
+  } finally {
+    submit.disabled = false;
+  }
+});
+
+refresh.addEventListener("click", loadHistory);
+loadHistory();
+</script>
+</html>
