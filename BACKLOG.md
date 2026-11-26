@@ -7,7 +7,8 @@
 - [x] Serve individual sensor scores through FastAPI.
 - [x] Persist alerts and expose history through PostgreSQL.
 - [x] Build an operator dashboard for scoring and recent alerts.
-- [ ] Containerize the application and publish a reproducible demo.
+- [x] Add Docker Compose packaging and a reproducible demo script.
+- [ ] Verify the full container build and startup on a Docker-enabled runner and finalize the release.
 
 ## Try CSV ingestion
 
@@ -71,3 +72,7 @@ Submit a temperature spike using the example above, then call `GET /alerts?limit
 ## Open the operator dashboard
 
 Start the API as above and visit http://127.0.0.1:8000/. The form starts with a synthetic temperature spike. Submit it to see the score and sensor with the largest deviation. With PostgreSQL configured, the dashboard displays the latest 25 saved alerts. History can be refreshed independently.
+
+## Release verification
+
+Compose configuration validation and the demo smoke test passed. The smoke test ran over HTTP against native Uvicorn and PostgreSQL 16.2. Full container startup remains to be verified.
