@@ -8,7 +8,8 @@
 - [x] Persist alerts and expose history through PostgreSQL.
 - [x] Build an operator dashboard for scoring and recent alerts.
 - [x] Add Docker Compose packaging and a reproducible demo script.
-- [ ] Verify the full container build and startup on a Docker-enabled runner and finalize the release.
+- [x] Verify the full container build and startup on a Docker-enabled runner.
+- [ ] Finalize the release after review of pull request #1.
 
 ## Try CSV ingestion
 
@@ -75,4 +76,4 @@ Start the API as above and visit http://127.0.0.1:8000/. The form starts with a 
 
 ## Release verification
 
-Compose configuration validation and the demo smoke test passed. The smoke test ran over HTTP against native Uvicorn and PostgreSQL 16.2. Full container startup remains to be verified.
+Compose configuration validation and the demo smoke test passed. The smoke test ran over HTTP against native Uvicorn and PostgreSQL 16.2. The clean container build, dashboard response, and PostgreSQL alert round trip passed in [GitHub Actions](https://github.com/LegolizedKing/industrial-anomaly-platform/actions/runs/46053952948).
