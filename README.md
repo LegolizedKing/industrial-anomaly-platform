@@ -1,15 +1,22 @@
 # Industrial Anomaly Detection Platform
 
-A portfolio project for detecting unusual industrial sensor readings and showing which sensor drives each alert. The initial demo uses reproducible simulated data.
+Score industrial sensor readings, identify the sensor driving each alert, and review saved alerts in an operator dashboard.
 
-## Run the baseline
+## Local demo
 
-Run `python anomaly_demo.py` with Python 3. The script reports precision, recall and error counts and writes `scored_readings.csv`.
+From the development branch, run:
 
-The detector fits a mean and standard deviation to 500 normal readings per sensor. On 300 later readings, it alerts when any sensor deviates by at least 3.5 standard deviations. Injected fault labels are used only for evaluation. Results describe the simulation and need validation on measured data.
+```sh
+docker compose up --build -d
+python demo.py
+```
 
-## Roadmap
+Open [the dashboard](http://127.0.0.1:8000/) and submit the prefilled temperature spike. The API returns the score, alert flag and largest contributing sensor. PostgreSQL keeps flagged readings across normal Compose shutdowns. The demo script submits its own simulated temperature spike and verifies that it appears in history. Run `docker compose down` to stop both services.
 
-1. Add CSV validation and compare detectors on chronological splits using false alerts per hour and time to detection.
-2. Add a FastAPI service and PostgreSQL alert history.
-3. Add an operator dashboard and package the demo with Docker and automated checks.
+The Compose configuration uses demo credentials, publishes only the dashboard and API on localhost, and initializes the schema on a fresh database volume. These settings are intended for a local portfolio demo.
+
+## Evaluation and data
+
+Run `python evaluate_detectors.py --output comparison.csv` for the reproducible synthetic comparison. Both detectors fit on 500 seeded normal readings and score 300 later readings with two injected fault windows. The threshold is fixed at 3.5. The mean-based detector flagged 39 of 45 anomalous readings, and the median-based detector flagged 38. Neither flagged a normal reading in this simulation.
+
+The [project backlog](BACKLOG.md) includes CSV ingestion, the separate measured office-temperature benchmark, data provenance, and setup without Docker. The API uses synthetic reference data. Field performance on factory machinery remains unverified.

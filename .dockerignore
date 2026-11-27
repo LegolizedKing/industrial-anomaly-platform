@@ -1,0 +1,8 @@
+*
+!requirements.txt
+!api.py
+!alert_store.py
+!anomaly_demo.py
+!evaluate_detectors.py
+!sensor_csv.py
+!dashboard.html
